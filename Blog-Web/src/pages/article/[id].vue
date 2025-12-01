@@ -78,7 +78,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Calendar, Timer, ArrowLeft, Warning, Star, StarFilled } from '@element-plus/icons-vue';
-import { articleService } from '../../services/api';
+import { articleService, statisticService } from '../../apis';
 
 const route = useRoute();
 const router = useRouter();
@@ -152,7 +152,7 @@ const goBack = () => {
 const incrementViewCount = async () => {
   try {
     const articleId = route.params.id;
-    await articleService.incrementViewCount(articleId);
+    await statisticService.incrementViewCount(articleId);
   } catch (error) {
     console.error('增加浏览量失败:', error);
   }
@@ -166,7 +166,7 @@ const handleLike = async () => {
   try {
     const articleId = route.params.id;
     const action = isLiked.value ? 'unlike' : 'like';
-    const response = await articleService.toggleLikeCount(articleId, action);
+    const response = await statisticService.toggleLikeCount(articleId, action);
     
     likeCount.value = response.like_count;
     isLiked.value = action === 'like';

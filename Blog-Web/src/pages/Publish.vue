@@ -109,7 +109,7 @@ import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ArrowLeft, Check } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
-import { articleService } from '../services/api';
+import { articleService, otherService } from '../apis';
 
 const router = useRouter();
 
@@ -135,8 +135,9 @@ const allTags = ref([]);
 // 加载所有标签
 const loadAllTags = async () => {
   try {
-    const response = await articleService.getTags();
-    allTags.value = response.tags || [];
+    const response = await otherService.getTags();
+    // 从tags中提取标签名称（现在tags是对象数组，包含name和count）
+    allTags.value = response.tags ? response.tags.map(tag => tag.name) : [];
   } catch (error) {
     console.error('加载标签失败:', error);
     allTags.value = [];

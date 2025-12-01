@@ -1,1 +1,40 @@
 @import "tailwindcss";
+
+/* 解决滚动条导致页面偏移的问题 */
+html {
+  /* 方法1: 始终显示滚动条，防止页面宽度跳动 */
+  overflow-y: scroll;
+  
+  /* 方法2: 使用overlay让滚动条悬浮在内容上方（WebKit浏览器） */
+  overflow-y: overlay;
+}
+
+/* 对于不支持overlay的浏览器，使用scrollbar-gutter属性 */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* 美化滚动条（可选） */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* 确保body宽度计算正确 */
+body {
+  width: 100%;
+  overflow-x: hidden;
+}

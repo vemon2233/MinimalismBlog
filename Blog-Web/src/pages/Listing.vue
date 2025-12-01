@@ -7,7 +7,7 @@
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <!-- 分类方式选择（使用Radio） -->
             <div class="flex items-start">
-              <el-radio-group v-model="categoryType" size="small" class="flex space-y-2">
+              <el-radio-group v-model="categoryType" @change="resetSelectedCategory" size="small" class="flex space-y-2">
                 <el-radio value="tag">按标签</el-radio>
                 <el-radio value="year">按年份</el-radio>
               </el-radio-group>
@@ -65,7 +65,7 @@
           
           <!-- 正常状态：有分类数据 -->
           <div v-else>
-            <div v-for="category in categories" :key="category.id" class="mb-12">
+            <div v-for="category in selectedCategories" :key="category.id" class="mb-12">
               <div class="mb-6">
                 <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-blue-500 pb-2 inline-block">
                   {{ category.name }}
@@ -104,7 +104,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Warning, Refresh, Document } from '@element-plus/icons-vue';
-import { articleService } from '../services/api';
+import { articleService, otherService } from '../apis';
 
 const router = useRouter();
 
@@ -121,18 +121,20 @@ const loadData = async () => {
   apiError.value = false;
   try {
     // 并行加载文章和标签数据
+    // 使用getAllArticles()获取所有文章（不分页），而不是getArticles()（只返回第一页的5篇文章）
     const [articlesResponse, tagsResponse] = await Promise.all([
-      articleService.getArticles(),
-      articleService.getTags()
+      articleService.getAllArticles(),
+      otherService.getTags()
     ]);
 
     allArticles.value = articlesResponse.articles;
-    allTags.value = tagsResponse.tags;
+    // 从tagsResponse.tags中提取标签名称（现在tags是对象数组，包含name和count）
+    allTags.value = tagsResponse.tags.map(tag => tag.name);
 
     // 设置默认激活的分类
-    if (allTags.value.length > 0) {
-      activeCategory.value = allTags.value[0];
-    }
+    // if (allTags.value.length > 0) {
+    //   activeCategory.value = allTags.value[0];
+    // }
 
   } catch (error) {
     console.error('加载数据失败:', error);
@@ -210,6 +212,33 @@ const categories = computed(() =>
 const goToArticle = (articleId: number) => {
   router.push(`/article/${articleId}`);
 };
+
+// 重置选中的分类数据
+const resetSelectedCategory = () => {
+  activeCategory.value = '';
+}
+
+// 当前显示的分类数据
+const selectedCategories = computed(() => {
+  if (categoryType.value === 'tag') {
+    // 如果选择了按标签分类，并且有激活的标签，则只显示该标签的分类
+    if (activeCategory.value) {
+      const filtered = categories.value.filter(category => category.id === activeCategory.value);
+      return filtered;
+    }
+    // 否则显示所有标签分类
+    return categories.value;
+  } else {
+    // 按年份分类
+    // 如果选择了按年份分类，并且有激活的年份，则只显示该年份的分类
+    if (activeCategory.value) {
+      const filtered = categories.value.filter(category => category.id === activeCategory.value);
+      return filtered;
+    }
+    // 否则显示所有年份分类
+    return categories.value;
+  }
+});
 </script>
 
 <style scoped>

@@ -58,7 +58,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Calendar, Timer, ArrowLeft, Loading, Warning } from '@element-plus/icons-vue';
-import { articleService } from '../services/api';
+import { articleService } from '../apis';
 
 const route = useRoute();
 const router = useRouter();

@@ -44,7 +44,7 @@
 import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { User, Loading } from '@element-plus/icons-vue';
-import { articleService } from '../services/api';
+import { commentService } from '../apis';
 
 // Props
 const props = defineProps<{
@@ -92,7 +92,7 @@ const formatTime = (timeString: string) => {
 const loadComments = async () => {
   loading.value = true;
   try {
-    const response = await articleService.getComments(props.articleId);
+    const response = await commentService.getComments(props.articleId);
     comments.value = response.comments || [];
   } catch (error) {
     console.error('加载评论失败:', error);
@@ -123,7 +123,7 @@ const submitComment = async () => {
 
   submitting.value = true;
   try {
-    await articleService.createComment(props.articleId, {
+    await commentService.createComment(props.articleId, {
       author_name: authorName.value || '匿名用户',
       author_email: authorEmail.value,
       content: commentContent.value
