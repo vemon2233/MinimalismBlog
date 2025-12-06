@@ -1,10 +1,12 @@
 <template>
-  <article 
-    class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer"
-    @click="handleArticleClick"
-  >
-    <h2 class="text-xl font-bold mb-2 hover:text-stone-600 transition-colors">{{ article.title }}</h2>
-    
+  <article class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
+    <h2 class="text-xl font-bold mb-2 hover:text-stone-600 transition-colors cursor-pointer" @click="handleArticleClick">
+      {{ article.title }}
+      <span v-if="showProgramName && article.program_name" class="text-sm font-normal text-blue-600 ml-2">
+        [{{ article.program_name }}]
+      </span>
+    </h2>
+
     <!-- 文章元信息 -->
     <div class="flex items-center text-sm text-gray-500 mb-3 space-x-4">
       <span class="flex items-center">
@@ -38,18 +40,14 @@
         {{ article.comment_count || 0 }}
       </span>
     </div>
-    
+
     <!-- 文章摘要 -->
     <p class="text-gray-600 mb-4 line-clamp-3">{{ article.excerpt }}</p>
-    
+
     <!-- 标签 -->
     <div class="flex flex-wrap gap-2">
-      <el-tag 
-        v-for="tag in article.tags" 
-        :key="tag" 
-        class="!rounded-button cursor-pointer"
-        @click.stop="handleTagClick(tag)"
-      >
+      <el-tag v-for="tag in article.tags" :key="tag" class="!rounded-button cursor-pointer"
+        @click.stop="handleTagClick(tag)">
         {{ tag }}
       </el-tag>
     </div>
@@ -71,12 +69,15 @@ interface Props {
     comment_count: number;
     excerpt: string;
     tags: string[];
+    program_name?: string;
   };
   onTagClick?: (tag: string) => void;
+  showProgramName?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  onTagClick: undefined
+  onTagClick: undefined,
+  showProgramName: false
 });
 
 // 定义emits

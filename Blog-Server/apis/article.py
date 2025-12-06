@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models import db, Article, Tag, ArticleTag
+from models import db, Article, Tag, ArticleTag, Project, ProjectArticle, Comment
 
 article_blueprint = Blueprint('article', __name__)
 
@@ -59,7 +59,8 @@ def get_articles():
                 'like_count': article.like_count,
                 'comment_count': article.comment_count,
                 'created_at': article.created_at.strftime('%Y-%m-%d'),
-                'tags': article_tags.get(article.id, [])
+                'tags': article_tags.get(article.id, []),
+                'program_name': article.program_name
             })
 
         return jsonify({
@@ -108,7 +109,8 @@ def get_all_articles():
                 'like_count': article.like_count,
                 'comment_count': article.comment_count,
                 'created_at': article.created_at.strftime('%Y-%m-%d'),
-                'tags': article_tags.get(article.id, [])
+                'tags': article_tags.get(article.id, []),
+                'program_name': article.program_name
             })
 
         return jsonify({
@@ -132,8 +134,12 @@ def get_article(article_id):
             'content': article.content,
             'excerpt': article.excerpt,
             'read_time': article.read_time,
+            'view_count': article.view_count,
+            'like_count': article.like_count,
+            'comment_count': article.comment_count,
             'created_at': article.created_at.strftime('%Y-%m-%d'),
-            'tags': [tag.name for tag in article.tags]
+            'tags': [tag.name for tag in article.tags],
+            'program_name': article.program_name
         })
 
     except Exception as e:
@@ -158,6 +164,17 @@ def create_article():
         db.session.add(article)
         db.session.flush()  # 获取article.id
 
+        # 处理项目关联
+        if 'program_id' in data and data['program_id']:
+            program_id = data['program_id']
+            program = Project.query.get(program_id)
+            if program:
+                # 创建项目-文章关联
+                project_article = ProjectArticle(project_id=program_id, article_id=article.id)
+                db.session.add(project_article)
+                # 设置文章的项目名称
+                article.program_name = program.name
+
         # 处理标签
         if 'tags' in data:
             for tag_name in data['tags']:
@@ -176,6 +193,77 @@ def create_article():
             'message': '文章创建成功',
             'article_id': article.id
         }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@article_blueprint.route('/update/<int:article_id>', methods=['PUT'])
+def update_article(article_id):
+    """更新文章"""
+    try:
+        article = Article.query.get_or_404(article_id)
+        data = request.get_json()
+
+        # 更新文章基本信息
+        if 'title' in data:
+            article.title = data['title']
+        if 'content' in data:
+            article.content = data['content']
+        if 'excerpt' in data:
+            article.excerpt = data['excerpt']
+        if 'read_time' in data:
+            article.read_time = data['read_time']
+        if 'is_published' in data:
+            article.is_published = data['is_published']
+
+        # 处理标签更新
+        if 'tags' in data:
+            # 删除现有的标签关联
+            ArticleTag.query.filter_by(article_id=article_id).delete()
+            
+            # 添加新的标签
+            for tag_name in data['tags']:
+                tag = Tag.query.filter_by(name=tag_name).first()
+                if not tag:
+                    tag = Tag(name=tag_name)
+                    db.session.add(tag)
+                    db.session.flush()
+
+                article_tag = ArticleTag(article_id=article_id, tag_id=tag.id)
+                db.session.add(article_tag)
+
+        db.session.commit()
+
+        return jsonify({
+            'message': '文章更新成功',
+            'article_id': article.id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@article_blueprint.route('/delete/<int:article_id>', methods=['DELETE'])
+def delete_article(article_id):
+    """删除文章"""
+    try:
+        article = Article.query.get_or_404(article_id)
+
+        # 先删除关联关系
+        ArticleTag.query.filter_by(article_id=article_id).delete()
+        ProjectArticle.query.filter_by(article_id=article_id).delete()
+        Comment.query.filter_by(article_id=article_id).delete()
+        
+        # 删除文章
+        db.session.delete(article)
+        db.session.commit()
+
+        return jsonify({
+            'message': '文章删除成功'
+        })
 
     except Exception as e:
         db.session.rollback()
@@ -304,7 +392,8 @@ def search_articles():
                 'like_count': article.like_count,
                 'comment_count': article.comment_count,
                 'created_at': article.created_at.strftime('%Y-%m-%d'),
-                'tags': article_tags.get(article.id, [])
+                'tags': article_tags.get(article.id, []),
+                'program_name': article.program_name
             })
 
         return jsonify({

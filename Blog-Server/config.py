@@ -14,4 +14,4 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # CORS配置
-    CORS_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173']  # Vue开发服务器地址
+    CORS_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174']  # Vue开发服务器地址

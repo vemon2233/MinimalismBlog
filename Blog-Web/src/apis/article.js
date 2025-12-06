@@ -35,6 +35,16 @@ export const articleService = {
   // 搜索文章
   searchArticles(params = {}) {
     return api.get('/article/search', { params })
+  },
+
+  // 更新文章
+  updateArticle(id, data) {
+    return api.put(`/article/update/${id}`, data)
+  },
+
+  // 删除文章
+  deleteArticle(id) {
+    return api.delete(`/article/delete/${id}`)
   }
 }
 

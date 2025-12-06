@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- 主要内容区 -->
-    <div class="max-w-7xl mx-auto px-4 pt-24 pb-12">
+    <div class="max-w-7xl mx-auto px-4 pt-30 pb-12">
       <div class="flex flex-col md:flex-row gap-8">
         <!-- 左侧文章列表 -->
         <main class="flex-1">
@@ -14,7 +14,7 @@
           <!-- 数据加载完成后的状态 -->
           <div v-else-if="dataLoaded">
             <!-- 服务正常但无文章 -->
-            <div v-if="filteredPosts.length === 0" class="bg-white rounded-lg shadow-sm p-8 text-center">
+            <div v-if="filteredArticles.length === 0" class="bg-white rounded-lg shadow-sm p-8 text-center">
               <el-icon class="text-gray-400 text-4xl mb-4">
                 <Document />
               </el-icon>
@@ -25,9 +25,10 @@
             <!-- 正常状态：有文章 -->
             <div v-else class="space-y-6">
               <SingleArticle 
-                v-for="post in filteredPosts" 
-                :key="post.id"
-                :article="post"
+                v-for="article in filteredArticles" 
+                :key="article.id"
+                :article="article"
+                :show-program-name="true"
                 @article-click="goToArticle"
                 @tag-click="filterByTag"
               />
@@ -91,7 +92,7 @@
 <script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Calendar, Timer, View, Star, ChatDotRound, Document } from '@element-plus/icons-vue';
+import { Document } from '@element-plus/icons-vue';
 import { articleService, otherService } from '../apis';
 import SingleArticle from '../components/SingleArticle.vue';
 import ApiErrorState from '../components/ApiErrorState.vue';
@@ -170,7 +171,7 @@ const filterByTag = (tag: string) => {
   loadData();
 };
 
-const filteredPosts = computed(() => {
+const filteredArticles = computed(() => {
   let result = [...posts.value];
   if (searchText.value) {
     result = result.filter(post =>
@@ -204,12 +205,4 @@ const goToArticle = (articleId: number) => {
 </script>
 
 <style scoped>
-.el-pagination :deep(.el-pager li.is-active) {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.el-pagination :deep(.el-pager li:hover) {
-  color: #3b82f6;
-}
 </style>

@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- 文章内容区 -->
-    <main class="max-w-4xl mx-auto px-4 pt-24 pb-12">
+    <main class="max-w-4xl mx-auto px-4 pt-30 pb-12">
       <div v-if="loading" class="bg-white rounded-lg shadow-sm p-8 text-center">
         <el-icon class="text-4xl text-gray-400 animate-spin"><Loading /></el-icon>
         <p class="mt-4 text-gray-600">加载中...</p>
@@ -78,13 +78,11 @@ const formatDate = (dateString: string) => {
 
 // 加载文章详情
 const loadArticle = async () => {
-  console.log("Aaa")
   loading.value = true;
   try {
     const articleId = route.params.id;
     const response = await articleService.getArticle(articleId);
     article.value = response.article;
-    console.log(article)
   } catch (error) {
     console.error('加载文章失败:', error);
     article.value = null;
@@ -99,7 +97,6 @@ const goBack = () => {
 };
 
 onMounted(() => {
-  console.log("aaa")
   loadArticle();
 });
 </script>

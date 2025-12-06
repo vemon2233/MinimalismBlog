@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- 主要内容区 -->
-    <div class="max-w-7xl mx-auto px-4 pt-24 pb-12">
+    <div class="max-w-7xl mx-auto px-4 pt-30 pb-12">
       <!-- 搜索头部 -->
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-4">搜索结果</h1>
@@ -15,7 +15,7 @@
               size="large"
             />
           </div>
-          <el-button type="primary" size="large" @click="handleSearch">
+          <el-button type="primary" plain size="large" @click="handleSearch">
             <el-icon class="mr-1">
               <Search />
             </el-icon>
@@ -51,6 +51,7 @@
             v-for="article in searchResults" 
             :key="article.id"
             :article="article"
+            :show-program-name="true"
             @article-click="goToArticle"
             @tag-click="searchByTag"
           />

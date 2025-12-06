@@ -10,6 +10,7 @@ class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
+    image_url = db.Column(db.String(500))  # 项目图片URL，格式：/static/uploads/projects/program{id}.{ext}
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -40,6 +41,7 @@ class Article(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_published = db.Column(db.Boolean, default=True)
+    program_name = db.Column(db.String(200))  # 文章所属的项目名称
 
     # 标签关系
     tags = db.relationship('Tag', secondary='article_tags', back_populates='articles')

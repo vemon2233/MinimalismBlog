@@ -9,22 +9,34 @@ export const programService = {
   
   // 获取单个项目详情
   getProject(id) {
-    return api.get(`/program/${id}`)
+    return api.get(`/program/single/${id}`)
   },
   
   // 创建项目
   createProject(data) {
-    return api.post('/program/create', data)
+    // 如果是FormData，不设置Content-Type，让浏览器自动设置
+    const config = data instanceof FormData ? {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    } : {};
+    return api.post('/program/create', data, config)
   },
   
   // 更新项目
   updateProject(id, data) {
-    return api.put(`/program/${id}/update`, data)
+    // 如果是FormData，不设置Content-Type，让浏览器自动设置
+    const config = data instanceof FormData ? {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    } : {};
+    return api.post(`/program/update/${id}`, data, config)
   },
   
   // 删除项目
   deleteProject(id) {
-    return api.delete(`/program/${id}/delete`)
+    return api.delete(`/program/delete/${id}`)
   },
   
   // 向项目添加文章

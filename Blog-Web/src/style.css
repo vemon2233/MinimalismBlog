@@ -38,3 +38,13 @@ body {
   width: 100%;
   overflow-x: hidden;
 }
+
+/* 修复对话框滚动条问题 - 防止页面尺寸变化 */
+/* 当Element Plus对话框打开时，body会添加el-popup-parent--hidden类 */
+/* Element Plus会自动设置内联样式：style="width: calc(100% - 10px); padding-right: 10px;" */
+/* 我们需要使用更具体的选择器来覆盖内联样式 */
+body.el-popup-parent--hidden[style*="width: calc(100% - 10px)"] {
+  /* 使用!important覆盖内联样式 */
+  width: 100% !important;
+  padding-right: 0 !important;
+}

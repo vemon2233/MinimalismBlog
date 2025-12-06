@@ -1,4 +1,7 @@
 from flask import Blueprint, request, jsonify
+import os
+from datetime import datetime
+from werkzeug.utils import secure_filename
 from models import db, Project, Article, ProjectArticle
 
 program_blueprint = Blueprint('program', __name__)
@@ -39,6 +42,7 @@ def get_all_projects():
                 'id': project.id,
                 'name': project.name,
                 'description': project.description,
+                'image_url': project.image_url,  # 添加图片URL字段
                 'created_at': project.created_at.strftime('%Y-%m-%d'),
                 'updated_at': project.updated_at.strftime('%Y-%m-%d') if project.updated_at else '',
                 'article_count': len(project_articles.get(project.id, [])),
@@ -56,40 +60,72 @@ def get_all_projects():
 
 @program_blueprint.route('/create', methods=['POST'])
 def create_project():
-    """创建新项目"""
+    """创建新项目（支持图片上传）"""
     try:
-        data = request.get_json()
-
+        # 获取表单数据
+        name = request.form.get('name')
+        description = request.form.get('description', '')
+        article_ids_str = request.form.get('article_ids', '')
+        
         # 验证必要字段
-        if not data.get('name'):
+        if not name:
             return jsonify({'error': '项目名称不能为空'}), 400
 
         # 创建项目
         project = Project(
-            name=data['name'],
-            description=data.get('description', '')
+            name=name,
+            description=description
         )
 
         db.session.add(project)
         db.session.flush()  # 获取project.id
+        
+        # 处理图片上传
+        if 'image' in request.files:
+            file = request.files['image']
+            if file.filename != '':
+                # 验证文件类型
+                allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+                if '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions:
+                    # 获取文件扩展名
+                    file_ext = file.filename.rsplit('.', 1)[1].lower()
+                    
+                    # 生成文件名：program{id}.{ext}
+                    filename = f"program{project.id}.{file_ext}"
+                    
+                    # 创建上传目录
+                    upload_dir = os.path.join('static', 'uploads', 'projects')
+                    os.makedirs(upload_dir, exist_ok=True)
+                    
+                    # 保存文件
+                    file_path = os.path.join(upload_dir, filename)
+                    file.save(file_path)
+                    
+                    # 更新项目的image_url字段
+                    project.image_url = f"/static/uploads/projects/{filename}"
 
         # 处理关联的文章（可选）
-        if 'article_ids' in data and data['article_ids']:
-            for article_id in data['article_ids']:
-                # 验证文章是否存在
-                article = Article.query.get(article_id)
-                if article:
-                    project_article = ProjectArticle(
-                        project_id=project.id,
-                        article_id=article_id
-                    )
-                    db.session.add(project_article)
+        if article_ids_str:
+            try:
+                article_ids = [int(id_str.strip()) for id_str in article_ids_str.split(',') if id_str.strip()]
+                for article_id in article_ids:
+                    # 验证文章是否存在
+                    article = Article.query.get(article_id)
+                    if article:
+                        project_article = ProjectArticle(
+                            project_id=project.id,
+                            article_id=article_id
+                        )
+                        db.session.add(project_article)
+            except ValueError:
+                pass  # 忽略格式错误的article_ids
 
         db.session.commit()
 
         return jsonify({
             'message': '项目创建成功',
-            'project_id': project.id
+            'project_id': project.id,
+            'image_url': project.image_url
         }), 201
 
     except Exception as e:
@@ -103,13 +139,8 @@ def get_project(project_id):
     try:
         project = Project.query.get_or_404(project_id)
 
-        # 获取项目关联的文章
-        articles = db.session.query(
-            Article.id,
-            Article.title,
-            Article.excerpt,
-            Article.created_at
-        ).join(ProjectArticle).filter(
+        # 获取项目关联的文章（包含所有字段）
+        articles = Article.query.join(ProjectArticle).filter(
             ProjectArticle.project_id == project_id
         ).order_by(Article.created_at.desc()).all()
 
@@ -118,14 +149,21 @@ def get_project(project_id):
             articles_list.append({
                 'id': article.id,
                 'title': article.title,
+                'content': article.content,
                 'excerpt': article.excerpt,
-                'created_at': article.created_at.strftime('%Y-%m-%d') if article.created_at else ''
+                'read_time': article.read_time,
+                'view_count': article.view_count,
+                'like_count': article.like_count,
+                'comment_count': article.comment_count,
+                'created_at': article.created_at.strftime('%Y-%m-%d'),
+                'tags': [tag.name for tag in article.tags]
             })
 
         return jsonify({
             'id': project.id,
             'name': project.name,
             'description': project.description,
+            'image_url': project.image_url,  # 添加图片URL字段
             'created_at': project.created_at.strftime('%Y-%m-%d'),
             'updated_at': project.updated_at.strftime('%Y-%m-%d') if project.updated_at else '',
             'articles': articles_list,
@@ -136,27 +174,73 @@ def get_project(project_id):
         return jsonify({'error': str(e)}), 500
 
 
-@program_blueprint.route('/update/<int:project_id>', methods=['PUT'])
+@program_blueprint.route('/update/<int:project_id>', methods=['POST'])
 def update_project(project_id):
-    """更新项目信息"""
+    """更新项目信息（支持图片上传）"""
     try:
         project = Project.query.get_or_404(project_id)
-        data = request.get_json()
-
+        
+        # 获取表单数据
+        name = request.form.get('name')
+        description = request.form.get('description')
+        article_ids_str = request.form.get('article_ids', '')
+        remove_image = request.form.get('remove_image', 'false').lower() == 'true'
+        
         # 更新项目信息
-        if 'name' in data:
-            project.name = data['name']
-        if 'description' in data:
-            project.description = data['description']
-
+        if name is not None:
+            project.name = name
+        if description is not None:
+            project.description = description
+        
+        # 处理图片删除
+        if remove_image and project.image_url:
+            # 删除物理文件
+            file_path = os.path.join(project.image_url.lstrip('/'))
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            # 清空数据库字段
+            project.image_url = None
+        
+        # 处理图片上传（新图片会覆盖旧图片）
+        if 'image' in request.files:
+            file = request.files['image']
+            if file.filename != '':
+                # 验证文件类型
+                allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+                if '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions:
+                    # 获取文件扩展名
+                    file_ext = file.filename.rsplit('.', 1)[1].lower()
+                    
+                    # 生成文件名：program{id}.{ext}
+                    filename = f"program{project_id}.{file_ext}"
+                    
+                    # 创建上传目录
+                    upload_dir = os.path.join('static', 'uploads', 'projects')
+                    os.makedirs(upload_dir, exist_ok=True)
+                    
+                    # 如果已有旧图片，先删除
+                    if project.image_url:
+                        old_file_path = os.path.join(project.image_url.lstrip('/'))
+                        if os.path.exists(old_file_path):
+                            os.remove(old_file_path)
+                    
+                    # 保存新文件
+                    file_path = os.path.join(upload_dir, filename)
+                    file.save(file_path)
+                    
+                    # 更新项目的image_url字段
+                    project.image_url = f"/static/uploads/projects/{filename}"
+        
         # 更新关联的文章（可选）
-        if 'article_ids' in data:
+        # 只有当article_ids_str不为None且不为空字符串时才更新关联
+        if article_ids_str is not None and article_ids_str != '':
             # 先删除现有的关联
             ProjectArticle.query.filter_by(project_id=project_id).delete()
             
             # 添加新的关联
-            if data['article_ids']:
-                for article_id in data['article_ids']:
+            try:
+                article_ids = [int(id_str.strip()) for id_str in article_ids_str.split(',') if id_str.strip()]
+                for article_id in article_ids:
                     article = Article.query.get(article_id)
                     if article:
                         project_article = ProjectArticle(
@@ -164,12 +248,15 @@ def update_project(project_id):
                             article_id=article_id
                         )
                         db.session.add(project_article)
+            except ValueError:
+                pass  # 忽略格式错误的article_ids
 
         db.session.commit()
 
         return jsonify({
             'message': '项目更新成功',
-            'project_id': project.id
+            'project_id': project.id,
+            'image_url': project.image_url
         })
 
     except Exception as e:
@@ -216,7 +303,11 @@ def add_article_to_project(project_id):
         if not article:
             return jsonify({'error': '文章不存在'}), 404
 
-        # 检查是否已经关联
+        # 检查文章是否已经关联了其他项目（通过program_name字段）
+        if article.program_name and article.program_name != project.name:
+            return jsonify({'error': f'文章已关联到项目"{article.program_name}"，无法关联到新项目'}), 400
+
+        # 检查是否已经关联（通过关联表）
         existing = ProjectArticle.query.filter_by(
             project_id=project_id,
             article_id=article_id
@@ -230,6 +321,9 @@ def add_article_to_project(project_id):
             project_id=project_id,
             article_id=article_id
         )
+        
+        # 更新文章的program_name字段
+        article.program_name = project.name
         
         db.session.add(project_article)
         db.session.commit()
@@ -259,6 +353,11 @@ def remove_article_from_project(project_id, article_id):
         
         if not project_article:
             return jsonify({'error': '文章未关联到该项目'}), 404
+
+        # 获取文章并清除program_name字段
+        article = Article.query.get(article_id)
+        if article and article.program_name == project.name:
+            article.program_name = None
 
         # 删除关联
         db.session.delete(project_article)

@@ -23,4 +23,13 @@ export default defineConfig({
     }),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      // 代理静态文件请求到Flask后端
+      '/static': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      }
+    }
+  }
 })
